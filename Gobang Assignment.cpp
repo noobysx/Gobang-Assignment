@@ -11,11 +11,14 @@ HINSTANCE hInst;                                // 当前实例
 WCHAR szTitle[MAX_LOADSTRING];                  // 标题栏文本
 WCHAR szWindowClass[MAX_LOADSTRING];            // 主窗口类名
 
+Chess* MainChess;
+
 // 此代码模块中包含的函数的前向声明:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
 BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
+INT_PTR CALLBACK    NewGame(HWND, UINT, WPARAM, LPARAM);
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                      _In_opt_ HINSTANCE hPrevInstance,
@@ -26,7 +29,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     UNREFERENCED_PARAMETER(lpCmdLine);
 
     // TODO: 在此处放置代码。
-
+    MainChess = new Chess(17, 0, 0); 
+    MainChess->LoadBoardAsBinary("file.dat");
+    MainChess->Suspend();
     // 初始化全局字符串
     LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
     LoadStringW(hInstance, IDC_GOBANGASSIGNMENT, szWindowClass, MAX_LOADSTRING);
@@ -123,14 +128,32 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 //
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
+    RECT wnr;
     switch (message)
     {
+    case WM_SETFOCUS:
+        GetClientRect(hWnd, &wnr); InvalidateRect(hWnd, &wnr, false);
+        SendMessage(hWnd, WM_PAINT, 0, 0);
+        break;
+    case WM_LBUTTONDOWN:
+        MainChess->MouseOperation(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam), PIECE_SET);
+        GetClientRect(hWnd, &wnr); InvalidateRect(hWnd, &wnr, false);
+        SendMessage(hWnd, WM_PAINT, 0, 0);
+        break;
+    case WM_MOUSEMOVE:
+        MainChess->MouseOperation(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam), PIECE_HOVER);
+        GetClientRect(hWnd, &wnr); InvalidateRect(hWnd, &wnr, false);
+        SendMessage(hWnd, WM_PAINT, 0, PIECE_HOVER);
+        break;
     case WM_COMMAND:
         {
             int wmId = LOWORD(wParam);
             // 分析菜单选择:
             switch (wmId)
             {
+            case IDM_NEW:
+                DialogBox(hInst, MAKEINTRESOURCE(IDD_NEWBOX), hWnd, NewGame);
+                break;
             case IDM_ABOUT:
                 DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
                 break;
@@ -147,26 +170,17 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             PAINTSTRUCT ps;
             HDC hdc = BeginPaint(hWnd, &ps);
             // TODO: 在此处添加使用 hdc 的任何绘图代码...
-            int size = 17;
-            RECT wndr; GetClientRect(hWnd, &wndr);
-            POINT apt[4];
-            int c = (wndr.bottom - wndr.top) / 100;
-            int a = wndr.bottom - wndr.top - c * 2;
-            int b = (wndr.right - wndr.left - a) >> 1;
-            apt[0].y = c, apt[0].x = b;
-            apt[1].y = c, apt[1].x = b + a;
-            apt[2].y = a + c, apt[2].x = b + a;
-            apt[3].y = a + c, apt[3].x = b;
-            Polygon(hdc, apt, 4);
-            b = a / size / 2; double d = 1.0 * (a - b * 2) / (size - 1);
-            for (int i = 0; i < size; ++i) {
-                MoveToEx(hdc, apt[0].x + b + i * d, apt[0].y + b, NULL);
-                LineTo(hdc, apt[3].x + b + i * d, apt[3].y - b);
-                MoveToEx(hdc, apt[0].x + b, apt[0].y + b + i * d, NULL);
-                LineTo(hdc, apt[1].x - b, apt[1].y + b + i * d);
-            }
+            GetClientRect(hWnd, &wnr);
+            if (lParam == PIECE_HOVER) {
+                MainChess->PaintHover(hdc);
+            }else MainChess->PaintBoard(hdc, &wnr);
             EndPaint(hWnd, &ps);
         }
+        break;
+    case WM_SIZE:
+        GetClientRect(hWnd, &wnr);
+        InvalidateRect(hWnd, &wnr, false);
+        SendMessage(hWnd, WM_PAINT, 0, 0);
         break;
     case WM_DESTROY:
         PostQuitMessage(0);
@@ -189,6 +203,30 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
     case WM_COMMAND:
         if (LOWORD(wParam) == IDOK || LOWORD(wParam) == IDCANCEL)
         {
+            EndDialog(hDlg, LOWORD(wParam));
+            return (INT_PTR)TRUE;
+        }
+        break;
+    }
+    return (INT_PTR)FALSE;
+}
+
+INT_PTR CALLBACK NewGame(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
+{
+    UNREFERENCED_PARAMETER(lParam);
+    switch (message)
+    {
+    case WM_INITDIALOG:
+        return (INT_PTR)TRUE;
+
+    case WM_COMMAND:
+        if (LOWORD(wParam) == IDOK)
+        {
+            MainChess = new Chess(17, 0, 0);
+            EndDialog(hDlg, LOWORD(wParam));
+            return (INT_PTR)TRUE;
+        }
+        else if (LOWORD(wParam) == IDCANCEL) {
             EndDialog(hDlg, LOWORD(wParam));
             return (INT_PTR)TRUE;
         }
