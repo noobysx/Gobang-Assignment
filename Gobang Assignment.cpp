@@ -154,6 +154,36 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
             case IDM_NEW:
                 DialogBox(hInst, MAKEINTRESOURCE(IDD_NEWBOX), hWnd, NewGame);
                 break;
+            case IDM_OPEN: 
+            {
+                OPENFILENAME ofn;
+                WCHAR* szFile = new WCHAR[512];
+                WCHAR* szFileTitle = new WCHAR[512];
+                memset(&ofn, 0, sizeof(ofn));
+                memset(szFile, 0, sizeof(WCHAR) * 512);
+                memset(szFileTitle, 0, sizeof(WCHAR) * 512);
+                ofn.lStructSize = sizeof(ofn);
+                ofn.hwndOwner = hWnd;
+                ofn.hInstance = hInst;
+                ofn.lpstrFilter = L"All File\0*.*\0";
+                ofn.nFilterIndex = 1;
+                ofn.lpstrFile = szFile;
+                ofn.nMaxFile = sizeof(WCHAR) * 512;
+                ofn.lpstrFileTitle = szFileTitle;
+                ofn.nMaxFileTitle = sizeof(WCHAR) * 512;
+                ofn.Flags = OFN_FILEMUSTEXIST | OFN_EXPLORER;
+
+                // 按下确定按钮
+                BOOL ok = GetOpenFileName(&ofn);
+                if (ok) {
+                    char buffer[1024];
+                    int cnt;
+                    wcstombs_s((size_t*) & cnt, buffer, sizeof(buffer), szFileTitle, sizeof(buffer));
+                    MainChess->LoadBoardAsBinary(buffer);
+                    SendMessage(hWnd, WM_SETFOCUS, 0, 0);
+                }
+                break;
+            }
             case IDM_ABOUT:
                 DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
                 break;
@@ -213,16 +243,26 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 
 INT_PTR CALLBACK NewGame(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
+    static HWND hEditSize = 0;
     UNREFERENCED_PARAMETER(lParam);
     switch (message)
     {
     case WM_INITDIALOG:
+        //界面上创建一个按钮
+        hEditSize = CreateWindow(L"edit", L"17", WS_CHILD | WS_VISIBLE | WS_BORDER,
+            100, 100, 50, 30, hDlg, (HMENU)DLG_INPUT_SIZE, hInst, NULL);
         return (INT_PTR)TRUE;
-
     case WM_COMMAND:
         if (LOWORD(wParam) == IDOK)
         {
-            MainChess = new Chess(17, 0, 0);
+            WCHAR strSize[10];
+            GetWindowText(hEditSize, strSize, 10);
+            int tmp = _wtoi(strSize);
+            if (tmp > 100 || tmp < 5) {
+                MessageBox(hDlg, L"非法输入", L"Error", MB_OK);
+                return (INT_PTR)TRUE;
+            }
+            MainChess = new Chess(tmp, 0, 0);
             EndDialog(hDlg, LOWORD(wParam));
             return (INT_PTR)TRUE;
         }

@@ -17,6 +17,7 @@
 #define IDM_OPEN                        32775
 #define IDM_SUSPEND                     32777
 #define IDC_STATIC                      -1
+#define DLG_INPUT_SIZE					65222
 
 // Next default values for new objects
 // 
