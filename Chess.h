@@ -16,10 +16,15 @@
 
 typedef char BOARDUNIT;
 
-class Chess {
-private:
+class Gobang {
+protected:
 	BOARDUNIT** chessboard;
-	int size, blackid, whiteid, currentcolor, status;//对局参数 【存储】
+	int size;
+};
+
+class Chess: public Gobang {
+private:
+	int blackid, whiteid, currentcolor, status;//对局参数 【存储】
 	long long begintime, endtime, timelimit;//【存储】
 	int clientborder, boardlength, leftborder, gridborder, chessradius;//界面参数
 	double gridlength;
@@ -50,4 +55,36 @@ public:
 	int Blackid() { return blackid; }
 	int Whiteid() { return whiteid; }
 	long long Begintime() { return begintime; }
+};
+
+#define PATTERNMAX 4
+class Gamenode {
+public:
+	std::vector<Gamenode*> next;
+	Gamenode* father;
+	char point[2], color;
+	int score;
+};
+
+class Trie {
+public:
+	Trie* next[3], * fail;
+	char exist;
+	Trie();
+	void insert(const char*, int, int);
+};
+
+class AI : public Gobang {
+private:
+	Gamenode* gametree;
+	Trie* match;
+	const char* patterns[PATTERNMAX] = { "011","111","211","012" };
+	const int* weights[PATTERNMAX] = { 0,0,0,0 };
+public:
+	AI();
+	int Estimate(){}//对当前局面估值，对行、列、斜用Query
+	void Calculate() {}//计算下一手
+	void Query(const char*, Trie*, int*);//利用AC自动机计算某行棋子的匹配数量
+
+	//和Chess类的接口
 };

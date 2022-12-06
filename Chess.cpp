@@ -1,13 +1,13 @@
 #include "Chess.h"
 #include "framework.h"
 
-Chess::Chess(int s, int b, int w) :size(s), blackid(b), whiteid(w) {
+Chess::Chess(int s, int b, int w) :blackid(b), whiteid(w) {
+    size = s;
     CreateChessboard();
     currentcolor = PIECE_BLACK;
     boardcolor = RGB(255, 227, 132);
     timelimit = -1;
 	begintime = time(nullptr);
-	//SaveBoard();
 }
 
 inline void Chess::DrawAChess(HDC hdc, int x, int y){
@@ -236,7 +236,6 @@ void Chess::LoadBoardAsBinary(const char* filename) {
     ob(codeori, 4);
     if (code != codeori) {
         MessageBox(0, L"code error", L"fail", 0);
-        End();
         return;
     }
     CreateChessboard();//载入参数完成，重新开始
@@ -253,7 +252,9 @@ void Chess::CreateChessboard() {
 
 void Chess::End() {
     if (status == STATUS_GAMING) status = STATUS_SUSPEND;
-    for (int i = 0; i < size; ++i) delete chessboard[i];
+    if(chessboard)
+    for (int i = 0; i < size; ++i)
+        delete chessboard[i];
     delete chessboard;
 }
 

@@ -20,5 +20,6 @@
 #include <vector>
 #include <iostream>
 #include <fstream>
+#include <queue>
 
 #include "CommDlg.h"
